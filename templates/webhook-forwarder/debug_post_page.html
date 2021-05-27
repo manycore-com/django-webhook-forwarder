@@ -1,0 +1,28 @@
+{% extends 'base_white.html' %}
+{% load crispy_forms_tags %}
+
+{% load globaltags %}
+
+
+{% block title %}{% projnamecap %} - Debug Post{% endblock %}
+
+
+{% block extrahead %}
+{% endblock %}
+
+
+
+{% block content %}
+
+    <div class="container mt-5 mb-5">
+        <h3>{{ extra }}</h3>
+        <pre>{{ requestpost }}</pre>
+        <h5>Headers</h5>
+        <pre>{{ requestheaders }}</pre>
+    </div>
+
+{% endblock %}
+
+
+{% block extraafterbody %}
+{% endblock %}

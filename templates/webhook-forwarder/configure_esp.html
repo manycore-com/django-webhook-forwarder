@@ -1,0 +1,39 @@
+{% extends 'base_white.html' %}
+{% load crispy_forms_tags %}
+
+{% load globaltags %}
+
+
+{% block title %}{% projnamecap %} - Configure Email Service Provider{% endblock %}
+
+
+{% block extrahead %}
+{% endblock %}
+
+
+
+{% block content %}
+
+    {% if webhook_uri %}
+        <div class="container mt-5">
+            Your webhook endpoint is:<br>
+            <a style="font-size: 0.9em;" href="{{ webhook_uri }}">{{ webhook_uri }}</a>
+        </div>
+    {% endif %}
+
+    <div class="container mt-5 mb-5">
+        <form method="POST">
+            {% csrf_token %}
+
+            {{ form |crispy }}
+
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </form>
+
+    </div>
+
+{% endblock %}
+
+
+{% block extraafterbody %}
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends 'base_white.html' %}
+{% load static %}
+{% load globaltags %}
+
+
+{% block title %}{% projnamecap %} - System Monitoring{% endblock %}
+
+
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/Chart.min.css" %}">
+<script src="{% static "js/Chart.min.js" %}"></script>
+{% endblock %}
+
+
+
+{% block content %}
+    <div class="container mt-5 mb-5">
+        <h2>Forwarding Monitor
+            {% if isActive %}
+                <span style="font-weight: bold; color:green;">Active</span>
+            {% else %}
+                <a href="/webhook-forwarder/configure-esp/"><span style="background-color:yellow; font-weight: bold; color:red;">Inactive!</span></a>
+            {% endif %}</h2>
+    </div>
+
+    <div class="container mt-5 mb-5">
+        <table class="w-100">
+            <tr>
+                <th></th>
+                <th>{{ yday|ts_to_ymd }} (UTC)</th>
+                <th>{{ today|ts_to_ymd }} (UTC)</th>
+            </tr>
+            <tr>
+                <th>Events Received</th>
+                <td>{{ yday_events_received }}</td>
+                <td>{{ today_events_received }}</td>
+            </tr>
+            <tr>
+                <th>Successful Forwards</th>
+                <td>{{ yday_forwarded_ok }}</td>
+                <td>{{ today_forwarded_ok }}</td>
+            </tr>
+            <tr>
+                <th>Failed Forward Attempts</th>
+                <td>{{ yday_forwarded_nok }}</td>
+                <td>{{ today_forwarded_nok }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="eventcontainer" class="container mt-5 mb-5">
+        <h3>Some Recently Received Events</h3>
+        <table>
+            {% if eventExample1 %}
+            <tr>
+                <td>{{ eventExample1 }}</td>
+            </tr>
+            {% endif %}
+            {% if eventExample2 %}
+            <tr>
+                <td>{{ eventExample2 }}</td>
+            </tr>
+            {% endif %}
+            {% if eventExample3 %}
+            <tr>
+                <td>{{ eventExample3 }}</td>
+            </tr>
+            {% endif %}
+            {% if eventExample4 %}
+            <tr>
+                <td>{{ eventExample4 }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <div class="container mt-5 mb-5">
+        <h4>Forwarding Error Messages</h4>
+        <table>
+        {% for row in sorted_array %}
+            {% for error in row.last_errors %}
+                {% if error %}
+                    <tr>
+                        <th>{{ row.created_at|ts_to_ymd }}</th>
+                        <td>{{ error }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+        </table>
+    </div>
+
+
+    <div class="container mt-5 mb-5">
+
+        <canvas id="forwardedChart" width="400" height="100"></canvas>
+        <canvas id="forwardedFailures" width="400" height="100"></canvas>
+
+    </div>
+
+
+{% endblock %}
+
+
+{% block extraafterbody %}
+
+<script>
+
+var forwardedChart = new Chart('forwardedChart', {
+    type: 'line',
+    data: {
+        labels: [
+            {% for row in sorted_array %}
+                "{{ row.created_at|ts_to_ymd }}", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
+                "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23",
+            {% endfor %}
+        ],
+        datasets: [
+            {
+                label: "successfully forwarded events",
+                data: [
+                    {% for row in sorted_array %}
+                        {% if row.id %}
+                            {{ row.s_h00 }},{{ row.s_h01 }},{{ row.s_h02 }},{{ row.s_h03 }},
+                            {{ row.s_h04 }},{{ row.s_h05 }},{{ row.s_h06 }},{{ row.s_h07 }},
+                            {{ row.s_h08 }},{{ row.s_h09 }},{{ row.s_h10 }},{{ row.s_h11 }},
+                            {{ row.s_h12 }},{{ row.s_h13 }},{{ row.s_h14 }},{{ row.s_h15 }},
+                            {{ row.s_h16 }},{{ row.s_h17 }},{{ row.s_h18 }},{{ row.s_h19 }},
+                            {{ row.s_h20 }},{{ row.s_h21 }},{{ row.s_h22 }},{{ row.s_h23 }},
+                        {% else %}
+                            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        {% endif %}
+                    {% endfor %}
+                ]
+            }
+        ]
+    },
+    options: {
+        scales: {
+            yAxes: [{
+                ticks: {
+                    callback: function(label, index, labels) {
+                        return "" + label + '';
+                    },
+                    beginAtZero: true
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: '# events'
+                },
+            }]
+        },
+        title: {
+            display: false,
+            text: 'Successfully Forwarded Events',
+        },
+        scaleLabel: function(label){return label.value.toString() +'%';},
+    }
+});
+
+var forwardedFailures = new Chart('forwardedFailures', {
+    type: 'line',
+    data: {
+        labels: [
+            {% for row in sorted_array %}
+                "{{ row.created_at|ts_to_ymd }}", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
+                "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23",
+            {% endfor %}
+        ],
+        datasets: [
+            {
+                label: "failed forwarded events",
+                data: [
+                    {% for row in sorted_array %}
+                        {% for fff in row.get_failures_hourly %}
+                            {{ fff }},
+                        {% endfor %}
+                    {% endfor %}
+                ]
+            }
+        ]
+    },
+    options: {
+        scales: {
+            yAxes: [{
+                ticks: {
+                    callback: function(label, index, labels) {
+                        return "" + label + '';
+                    },
+                    beginAtZero: true
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: '# events'
+                },
+            }]
+        },
+        title: {
+            display: false,
+            text: 'Forwarded Events',
+        },
+        scaleLabel: function(label){return label.value.toString() +'%';},
+    }
+});
+
+
+var entityMap = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+  '/': '&#x2F;',
+  '`': '&#x60;',
+  '=': '&#x3D;'
+};
+
+function escapeHtml (string) {
+  return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+    return entityMap[s];
+  });
+}
+
+{#$(document).ready(function() {#}
+{##}
+{#    $.ajax({#}
+{#        url: '/webhook-forwarder/forwarding-dashboard-ajax/',#}
+{#        success: function(json){#}
+{##}
+{#            if (! json['ok']) {#}
+{#                bootbox.alert({#}
+{#                    title: "Error",#}
+{#                    message: json["msg"] || "unknown server side error"#}
+{#                });#}
+{#            } else {#}
+{#                #}
+{#                $('#eventcontainer').html("<h4>Top of the forward queue</h4>")#}
+{#                for (var i=0; i<json["q1"].length; i++) {#}
+{#                    var ijson = $.parseJSON(json["q1"][i]["ESPJsonString"])#}
+{##}
+{#                    $('#eventcontainer').append('<pre>' + escapeHtml(JSON.stringify(ijson, null, 2)) + '</pre>');#}
+{#                }#}
+{##}
+{##}
+{#            }#}
+{#        },#}
+{#        error: function (request, status, error) {#}
+{#            bootbox.alert({#}
+{#                title: "Error",#}
+{#                message: $.parseJSON(request.responseText)["msg"]#}
+{#            });#}
+{#        },#}
+{#    });#}
+{##}
+{##}
+{#});#}
+
+
+</script>
+
+{% endblock %}
